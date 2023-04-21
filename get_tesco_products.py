@@ -3,7 +3,6 @@ import time
 from bs4 import BeautifulSoup
 import csv
 
-# Function to get product details from a single page
 def get_product_details(url):
     response = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 RuxitSynthetic/1.0 v4533815647682074101 t1691318593685825474 ath1fb31b7a altpriv cvcv=2 smf=0 svfu=1'})
     html = response.text
@@ -30,7 +29,6 @@ def get_product_details(url):
     print(f'@@ Total found: {len(products)} @@')
     return products
 
-# Function to save product details in a CSV file
 def save_to_csv(product_details, filename):
     with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
         fieldnames = ['title', 'url', 'price']
@@ -40,7 +38,6 @@ def save_to_csv(product_details, filename):
         for detail in product_details:
             writer.writerow({'title': detail[0], 'url': detail[1], 'price': detail[2]})
 
-# Main script
 base_url = 'https://www.tesco.ie/groceries/en-IE/shop'
 categories = ['fresh-food', 'bakery', 'food-cupboard', 'frozen-food', 'health-and-beauty', 'household']
 all_product_details = []
@@ -51,7 +48,6 @@ for category in categories:
         print(f'===== Getting product details from {url} =====')
         product_details = get_product_details(url)
         if product_details:
-            # Append the product details to the all_product_details list
             all_product_details.extend(product_details)
             save_to_csv(all_product_details, 'data/tesco_groceries.csv')
         else:
@@ -61,6 +57,3 @@ for category in categories:
             time.sleep(10)
         else:
             time.sleep(3)
-
-# Save all product details to a CSV file if you want
-save_to_csv(all_product_details, 'data/tesco_groceries.csv')
