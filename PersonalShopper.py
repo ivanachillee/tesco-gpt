@@ -5,6 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import re
 import openai
 from decouple import config
+import json
 
 class PersonalShopper:
     def __init__(self,openai_api_key,tesco_controller_instance,):
@@ -25,8 +26,8 @@ class PersonalShopper:
         self.system_prompt = """
         You are a helpful personal shopping assistant. You'll think through, reason, search and iterate based on the user's input to find the best products for them based on their preferences and budget.
         You will ALWAYS answer exclusively in the following format:
-        {"reasoning: "The reasoning behind your answer","action": "The action you'll take based on your reasoning, you can choose from the following: search, add_to_basket","action_params": "The parameters for the action you'll take (e.g. the product url and quantity for add_to_basket or the search query for search)")"}
-        You will only search for specific products based on your reasoning (e.g. meat, eggs, etc. don't do general queries) and the user's goal, and you will only add one at a time to the basket. When searching you will pass the action_params as so: [search_query]
+        {"reasoning": "The reasoning behind your answer","action": "The action you'll take based on your reasoning, you can choose from the following: search, add_to_basket","action_params": "The parameters for the action you'll take (e.g. the product url and quantity for add_to_basket or the search query for search)")"}
+        You will only search for specific products based on your reasoning (e.g. meat, eggs, etc. don't do general queries) and the user's goal, and you will only add one at a time to the basket. When searching you will pass the action_params as so: 'search_query'
         When doing an add_to_basket action, you will pass the action_params as so: [product_name,product_url,quantity_to_buy]
         """
 
@@ -37,8 +38,14 @@ class PersonalShopper:
     
     def search_product(self,prompt,topn=15):
         """ Searches the database for products based on the natural language prompt. """
-        query_embedding = self.embeddings_model.encode([["Represent the Grocery question for retrieving supporting titles: ", prompt]])
-        self.products['similarity'] = cosine_similarity(self.products['embeddings'].values.tolist(), query_embedding)
+        query_embedding = self.embeddings_model.encode([["Represent the Grocery question for retrieving supporting titles: ",prompt]])
+        self.products['similarity'] = cosine_similarity(self.products['embeddings'].values.tolist(),query_embedding)
+        self.products.sort_values(by=['similarity'],ascending=False,inplace=True)
+        results = self.products[['title','price','url']].head(topn)
+        self.products.drop(columns=['similarity'],inplace=True)
+        return results
+        
+
         self.products.sort_values(by=['similarity'], ascending=False, inplace=True)
         return self.products[['title','price','url']].head(topn)
 
@@ -61,19 +68,21 @@ class PersonalShopper:
 
         #extract the action from the reasoning result which should be a json object in string format
         action_to_take = re.search(r'"action": "(.*?)"', reasoning_result).group(1)
-        
-        #extract the action_params value from the reasoning result which is in an array format
-        action_parameters = re.search(r'"action_params": (.*?)]', reasoning_result).group(1)
 
         if action_to_take == "search":
-            search_result = self.search_product(action_parameters[0])
+            #given the query is received in the action_params property of the reasoning_result string as this 'query' extract it using json and asign its value to the search_query variable
+            search_query = re.search(r'"action_params": "(.*?)"', reasoning_result).group(1)
+            search_result = self.search_product(search_query)
             return_message = f"Here are the top 15 results for your search: {search_result}"
         
         elif action_to_take == "add_to_basket":
-            self.tesco.add_to_basket(action_parameters[1],action_parameters[2])
-            self.basket.append(action_parameters[0])
-            self.grandtotal += self.products[self.products["title"] == action_parameters]["price"].values[0]
-            return_message = f"I've added the product {action_parameters} to your basket. These are all the products in your basket: {self.basket}. Our grand total is {self.grandtotal}."
+            action_parameters = re.search(r'"action_params": (\[.*?\])', reasoning_result).group(1)
+            action_parameters = json.loads(action_parameters)
+            item_name,item_url,item_quantity = action_parameters
+            self.tesco.add_to_basket(item_url,item_quantity)
+            self.basket.append(item_name)
+            self.grandtotal += self.products[self.products['url'] == item_url]['price'].values[0] * item_quantity
+            return_message = f"I've added the product {item_name} to the basket. These are all the products in your basket: {self.basket}. The grand total so far is {self.grandtotal}."
 
         if verbose:
             print("----------- Action return message -----------")

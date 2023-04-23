@@ -43,7 +43,7 @@ categories = ['fresh-food', 'bakery', 'food-cupboard', 'frozen-food', 'health-an
 all_product_details = []
 
 for category in categories:
-    for i in range(1, 51): # Assuming a maximum of 100 pages per category, you can adjust this value
+    for i in range(1, 101): # Assuming a maximum of 100 pages per category, you can adjust this value
         url = f'{base_url}/{category}/all?page={i}&count=48'
         print(f'===== Getting product details from {url} =====')
         product_details = get_product_details(url)
