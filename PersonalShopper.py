@@ -29,6 +29,7 @@ class PersonalShopper:
         {"reasoning": "The reasoning behind your answer","action": "The action you'll take based on your reasoning, you can choose from the following: search, add_to_basket","action_params": "The parameters for the action you'll take (e.g. the product url and quantity for add_to_basket or the search query for search)")"}
         You will only search for specific products based on your reasoning (e.g. meat, eggs, etc. don't do general queries) and the user's goal, and you will only add one at a time to the basket. When searching you will pass the action_params as so: 'search_query'
         When doing an add_to_basket action, you will pass the action_params as so: [product_name,product_url,quantity_to_buy]
+        If you can't find exactly what you're looking for, just go for the most sensible similar alternative.
         """
 
         self.main_prompt = input("Enter your general goal for shopping: ")
@@ -80,9 +81,9 @@ class PersonalShopper:
             action_parameters = json.loads(action_parameters)
             item_name,item_url,item_quantity = action_parameters
             self.tesco.add_to_basket(item_url,item_quantity)
-            self.basket.append(item_name)
+            self.basket.append(f"{item_quantity}x of {item_name}")
             self.grandtotal += self.products[self.products['url'] == item_url]['price'].values[0] * item_quantity
-            return_message = f"I've added the product {item_name} to the basket. These are all the products in your basket: {self.basket}. The grand total so far is {self.grandtotal}."
+            return_message = f"I've added {item_quantity}x of {item_name} to the basket. These are all the products in your basket: {self.basket}. The grand total so far is {self.grandtotal}."
 
         if verbose:
             print("----------- Action return message -----------")
@@ -94,6 +95,8 @@ class PersonalShopper:
     
     def start_shopping(self):
         """ Starts the shopping session. """
+        
+        self.tesco.empty_basket()
 
         #Reasoning loop
         while self.grandtotal < self.budget:

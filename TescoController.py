@@ -4,6 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 import time
 
 class TescoController:
@@ -26,7 +27,7 @@ class TescoController:
         try:
             self.driver.implicitly_wait(5)
             quantity_input = self.driver.find_element(By.CSS_SELECTOR, 'input[data-auto="product-input"]')
-            self.driver.execute_script(f"arguments[0].value = '{quantity}';", quantity_input)
+            ActionChains(self.driver).click(quantity_input).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).send_keys(Keys.BACK_SPACE).send_keys(quantity).perform()
             add_button = self.driver.find_element(By.CSS_SELECTOR, 'button[data-auto="add-button"]')
             add_button.click()
         except Exception as e:
