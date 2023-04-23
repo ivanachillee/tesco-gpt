@@ -67,11 +67,9 @@ class PersonalShopper:
         
         self.thread.append({"role": "assistant", "content": reasoning_result})
 
-        #extract the action from the reasoning result which should be a json object in string format
         action_to_take = re.search(r'"action": "(.*?)"', reasoning_result).group(1)
 
         if action_to_take == "search":
-            #given the query is received in the action_params property of the reasoning_result string as this 'query' extract it using json and asign its value to the search_query variable
             search_query = re.search(r'"action_params": "(.*?)"', reasoning_result).group(1)
             search_result = self.search_product(search_query)
             return_message = f"Here are the top 15 results for your search: {search_result}"
